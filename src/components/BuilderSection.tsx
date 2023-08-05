@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import ReactFlow, { addEdge, applyEdgeChanges, applyNodeChanges, Background, Connection, Controls, Edge, EdgeChange, MarkerType, Node, NodeChange, OnConnect, OnEdgesChange, OnNodesChange } from 'reactflow';
 import 'reactflow/dist/style.css';
-
 import MessageNode from './Nodes/MessageNode.js';
 import { NodeData } from '../types/all.js';
 
@@ -14,9 +13,10 @@ const initNodes: Node[] = [
 ];
 
 
-const BuilderSection = ({ createNewNode, updateNodeText, resetCreateNewNodeValue, messageNodeClicked }: { createNewNode: string, updateNodeText: NodeData, resetCreateNewNodeValue: () => void, messageNodeClicked: (nodeData: NodeData) => void }) => {
+const BuilderSection = ({ createNewNode, updateNodeText, resetCreateNewNodeValue, messageNodeClicked, checkSaveSettings }: { createNewNode: string, updateNodeText: NodeData, resetCreateNewNodeValue: () => void, messageNodeClicked: (nodeData: NodeData) => void, checkSaveSettings:boolean }) => {
     const [allNodes, setAllNodes] = useState<Node[]>(initNodes);
     const [allEdges, setAllEdges] = useState<Edge[]>([]);
+
 
     const onNodesChange: OnNodesChange = useCallback(
         (changes: NodeChange[]) => { 
@@ -111,6 +111,18 @@ const BuilderSection = ({ createNewNode, updateNodeText, resetCreateNewNodeValue
             setAllNodes(updatedNodes);
         }
     }, [updateNodeText])
+
+    useEffect(()=>{
+        if(checkSaveSettings === true){
+            const currentNodes = allNodes.filter((node: Node)=> node.id);
+            console.log('=---currentNodes----', currentNodes)
+            
+
+
+
+            resetCreateNewNodeValue();
+        }
+    },[checkSaveSettings])
 
     const onNodeClick = (_: React.MouseEvent, currentNode: Node) => {
         if (currentNode?.type === "messageNode") {
