@@ -1,15 +1,9 @@
-// import { useCallback } from 'react';
 import { Handle, Position } from 'reactflow';
 import { MessageNodeData } from '../../types/all';
 import MessageIcon from "../../assets/message-icon.svg";
 import WhatsappIcon from "../../assets/whatsapp-icon.svg";
 
 const MessageNode = ({ data, isConnectable }:{data: MessageNodeData, isConnectable: boolean}) => {
-
-  // const onChange = useCallback((evt:  React.FormEvent<HTMLInputElement>) => {
-  //   console.log(evt.currentTarget.value, data);
-  // }, []);
-
   return (
     <div className="h-20 w-56 drop-shadow-md border rounded-lg">
       <Handle type="target" id="a" position={Position.Left} isConnectable={isConnectable} />
@@ -24,10 +18,10 @@ const MessageNode = ({ data, isConnectable }:{data: MessageNodeData, isConnectab
           </div>
         </div>
         <div className='bg-white h-[calc(100%-1.75rem)] rounded-b-lg text-black text-sm truncate text-left pb-1 pt-2 px-2'>
-          {data.textValue.length > 0 ?  data.textValue : 'Sample text'} 
+          {data?.textValue?.length > 0 ?  data.textValue : 'Sample text'} 
         </div>
       </div>
-      <Handle type="source" position={Position.Right} id="b" isConnectable={isConnectable} />
+      <Handle type="source" position={Position.Right} id="b" isConnectable={isConnectable} isConnectableStart={!data?.isDisableSource}/>
     </div>
   );
 }

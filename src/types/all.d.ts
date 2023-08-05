@@ -1,5 +1,6 @@
 export interface MessageNodeData {
-    textValue: string
+    textValue: string,
+    isDisableSource: boolean
 }
 
 export interface NodeData {
