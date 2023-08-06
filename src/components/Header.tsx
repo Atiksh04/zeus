@@ -1,5 +1,6 @@
 
 const Header = ({saveClicked}:{saveClicked: ()=> void})=>{
+    // rendering save button
     return(
         <div className='bg-gray-200 w-full h-16 flex justify-end'>
             <div className="w-1/3 flex items-center justify-center h-full">

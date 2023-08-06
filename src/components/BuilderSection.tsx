@@ -13,64 +13,21 @@ const initNodes: Node[] = [
 ];
 
 
-const BuilderSection = ({ createNewNode, updateNodeText, resetCreateNewNodeValue, messageNodeClicked, checkSaveSettings }: { createNewNode: string, updateNodeText: NodeData, resetCreateNewNodeValue: () => void, messageNodeClicked: (nodeData: NodeData) => void, checkSaveSettings:boolean }) => {
+const BuilderSection = ({ createNewNode, updateNodeText, resetCreateNewNodeValue, messageNodeClicked, checkSaveSettings, updateSavedSetting }: { createNewNode: string, updateNodeText: NodeData, resetCreateNewNodeValue: () => void, messageNodeClicked: (nodeData: NodeData) => void, checkSaveSettings: boolean, updateSavedSetting: (val: boolean) => void }) => {
     const [allNodes, setAllNodes] = useState<Node[]>(initNodes);
     const [allEdges, setAllEdges] = useState<Edge[]>([]);
 
-
-    const onNodesChange: OnNodesChange = useCallback(
-        (changes: NodeChange[]) => { 
-            setAllNodes((node: Node[]) => applyNodeChanges(changes, node))},
+    // function to handle addition of a new node. Caching this function with useCallback
+    const onNodeChangeHandler: OnNodesChange = useCallback(
+        (changes: NodeChange[]) => {
+            setAllNodes((node: Node[]) => applyNodeChanges(changes, node))
+        },
         [setAllNodes]
     );
-    
-    const onEdgesChange: OnEdgesChange = (changes: EdgeChange[]) => { 
-        checkAndUpdateisDisableSource(changes)
-        edgeChanged(changes)
-    }
 
-    const edgeChanged = useCallback((changes: EdgeChange[]) =>{ 
-        setAllEdges((edge: Edge[]) => applyEdgeChanges(changes, edge))},[setAllEdges]
-    );
-
-    const checkAndUpdateisDisableSource = (changes: EdgeChange[])=>{
-        const edge = changes[0];
-
-        if(edge.type === "remove"){
-            const nodes = edge.id.split("-");
-            const nodeId = `node-${nodes[2]}`; 
-
-            const updatedNodes = allNodes.map((node: Node) => {
-                if (`${node.id}b` === nodeId) {
-                    node.data.isDisableSource = false
-                }
-
-                return node;
-            });
-            setAllNodes(updatedNodes);
-        }
-    } 
-
-    const onConnect: OnConnect = (connection: Connection) => { 
-        updateSingleConnectionForNode(connection);
-        newConnectionAdded(connection);
-    }
-  
-    const newConnectionAdded = useCallback(
-        (connection: Connection) => { 
-        const newConnection = {
-            ...connection,
-            markerEnd: {
-                type: MarkerType.ArrowClosed,
-            },
-        }
-        setAllEdges((edges: Edge[]) => addEdge(newConnection, edges))
-        },
-        [setAllEdges]
-    );
-
-    const updateSingleConnectionForNode = (connection: Connection)=>{
-        if(connection.source){
+    // if source exists in the connection the for the valid node adding isDisableSource which will disable new edge creation
+    const updateSingleConnectionForNode = (connection: Connection) => {
+        if (connection.source) {
             const updatedNodes = allNodes.map((node: Node) => {
                 if (node.id === connection.source) {
                     node.data.isDisableSource = true
@@ -80,8 +37,54 @@ const BuilderSection = ({ createNewNode, updateNodeText, resetCreateNewNodeValue
             });
             setAllNodes(updatedNodes);
         }
-    } 
+    }
 
+    // handles on connect event and calls updateSingleConnectionForNode function to add isDisable source to limit edges
+    const onConnectHandler: OnConnect = useCallback(
+        (connection: Connection) => {
+            updateSingleConnectionForNode(connection);
+            const newConnection = {
+                ...connection,
+                markerEnd: {
+                    type: MarkerType.ArrowClosed,
+                },
+            }
+            setAllEdges((edges: Edge[]) => addEdge(newConnection, edges))
+        },
+        [setAllEdges, allNodes]
+    );
+
+
+    // function to handle edge changes. Also calling checkAndUpdateIsDisableSource function to remove isDisableSource from node
+    const onEdgesChangeHandler: OnEdgesChange = useCallback(
+        (changes: EdgeChange[]) => {
+            checkAndUpdateIsDisableSource(changes)
+            setAllEdges((edge: Edge[]) => applyEdgeChanges(changes, edge))
+        },
+        [setAllEdges, allNodes]
+    );
+
+    // checks if the event type in remove and updates the required node
+    const checkAndUpdateIsDisableSource = (changes: EdgeChange[]) => {
+        const edge = changes[0];
+        if (edge.type === "remove") {
+            // computing the node ID by splitting
+            const nodes = edge.id.split("-");
+            const nodeId = `node-${nodes[2]}`;
+
+            // for valid node setting isDisableSource to be false. So that pointer a new edge can be created.
+            const updatedNodes = allNodes.map((node: Node) => {
+                if (`${node.id}b` === nodeId) {
+                    node.data.isDisableSource = false
+                }
+
+                return node;
+            });
+            setAllNodes(updatedNodes);
+        }
+    }
+
+    // if createNewNode props changes and has value as messageNode then creating a node and updating allNodes
     useEffect(() => {
         if (createNewNode === "messageNode") {
             const lastCurrentNode = allNodes[allNodes.length - 1];
@@ -98,7 +101,7 @@ const BuilderSection = ({ createNewNode, updateNodeText, resetCreateNewNodeValue
         }
     }, [createNewNode]);
 
-
+    // if updateNodeText props changes then updating the valid node textValue
     useEffect(() => {
         if (updateNodeText.id.length > 0) {
             const updatedNodes = allNodes.map((nodes) => {
@@ -112,19 +115,29 @@ const BuilderSection = ({ createNewNode, updateNodeText, resetCreateNewNodeValue
         }
     }, [updateNodeText])
 
-    useEffect(()=>{
-        if(checkSaveSettings === true){
-            const currentNodes = allNodes.filter((node: Node)=> node.id);
-            console.log('=---currentNodes----', currentNodes)
-            
-
-
-
+    // on checkSaveSettings prop change, checking if the save settings are valid
+    useEffect(() => {
+        if (checkSaveSettings === true) {
+            let result = false;
+            if (allNodes.length !== 1) {
+                // adding all nodes ids to an array
+                const nodeIds = allNodes.map((node: Node) => { return node.id });
+                const mapping = {};
+                // iterating on all edges and if target exist in the nodeIds array then adding an entry to mapping
+                allEdges.forEach((edge: Edge) => {
+                    if (nodeIds.indexOf(edge.target) > -1)
+                        mapping[edge.target] = nodeIds.indexOf(edge.target);
+                });
+                result = Object.keys(mapping).length === (allNodes.length - 1);
+            }
+            // updating parent component with the result
+            updateSavedSetting(result);
             resetCreateNewNodeValue();
         }
-    },[checkSaveSettings])
+    }, [checkSaveSettings])
 
-    const onNodeClick = (_: React.MouseEvent, currentNode: Node) => {
+    // handling node click event to open settings panel
+    const onNodeClickHandler = (_: React.MouseEvent, currentNode: Node) => {
         if (currentNode?.type === "messageNode") {
             const data: NodeData = {
                 id: currentNode?.id,
@@ -135,17 +148,18 @@ const BuilderSection = ({ createNewNode, updateNodeText, resetCreateNewNodeValue
     }
 
     return (
+        // rendering builder section with zoom-in, zoom-out controls
         <ReactFlow
             nodes={allNodes}
             edges={allEdges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
+            onNodesChange={onNodeChangeHandler}
+            onEdgesChange={onEdgesChangeHandler}
+            onConnect={onConnectHandler}
             nodeTypes={nodeTypes}
-            onNodeClick={onNodeClick}
+            onNodeClick={onNodeClickHandler}
         >
             <Background />
-            <Controls 
+            <Controls
                 showInteractive={false}
             />
         </ReactFlow>

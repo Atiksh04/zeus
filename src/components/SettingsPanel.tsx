@@ -3,6 +3,7 @@ import BackIcon from "../assets/back-arrow.svg";
 
 const SettingsPanel = ({ updateNodeText, currentText, backClick }: { updateNodeText: (string) => void, currentText: string, backClick: (string) => void }) => {
 
+    // calling update text node when content is changed 
     const textareaChanged = (event: React.FormEvent<HTMLTextAreaElement>) => {
         updateNodeText(event.currentTarget.value);
     }
